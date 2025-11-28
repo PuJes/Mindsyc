@@ -1,0 +1,156 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model KnowledgeTree {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  rootNodeId  String?   @unique
+  rootNode    TreeNode? @relation("TreeRoot", fields: [rootNodeId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model TreeNode {
+  id            String     @id @default(cuid())
+  label         String
+  type          NodeType
+  isOpen        Boolean    @default(false)
+  isNew         Boolean    @default(false)
+  isModified    Boolean    @default(false)
+  isAiGenerated Boolean    @default(false)
+  
+  parentId      String?
+  parent        TreeNode?  @relation("NodeHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children      TreeNode[] @relation("NodeHierarchy")
+  
+  tree          KnowledgeTree? @relation("TreeRoot")
+  
+  sources       CardSource[]
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@index([parentId])
+}
+
+model CardSource {
+  id         String   @id @default(cuid())
+  cardId     String
+  title      String
+  summary    String   @db.Text
+  timestamp  String?
+  reasoning  String?  @db.Text
+  action     ActionType
+  confidence Float
+  importedAt DateTime @default(now())
+  
+  nodeId     String
+  node       TreeNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  
+  sourceType    String?
+  sourceTitle   String?
+  sourceUrl     String?
+  sourceSection String?
+  originalText  String?  @db.Text
+  charPosition  Int?
+  tags          String[]
+  editedBy      String?
+  priority      Int?
+  reviewStatus  String?
+  
+  createdAt  DateTime @default(now())
+  
+  @@index([nodeId])
+}
+
+model Card {
+  id           String      @id @default(cuid())
+  title        String
+  timestamp    String?
+  summary      String      @db.Text
+  action       CardAction
+  confidence   Float
+  targetNodeId String
+  targetLabel  String
+  reasoning    String?     @db.Text
+  
+  workflowId   String?
+  workflow     Workflow?   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  @@index([workflowId])
+}
+
+model Workflow {
+  id          String         @id @default(cuid())
+  sourceType  String
+  sourceTitle String
+  sourceUrl   String?
+  sourceContent String?      @db.Text
+  status      WorkflowStatus @default(IMPORT)
+  
+  cards       Card[]
+  
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  completedAt DateTime?
+}
+
+model LibraryItem {
+  id          String   @id @default(cuid())
+  title       String
+  nodeCount   Int      @default(0)
+  sourceCount Int      @default(0)
+  coverColor  String   @default("#6366f1")
+  tags        String[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AiConfig {
+  id        String   @id @default(cuid())
+  provider  String
+  apiKey    String
+  userId    String   @unique @default("default")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum NodeType {
+  FOLDER
+  FILE
+}
+
+enum ActionType {
+  MERGE
+  ADD
+}
+
+enum CardAction {
+  MERGE
+  ADD
+  CONFLICT
+  IGNORE
+}
+
+enum WorkflowStatus {
+  IMPORT
+  PROCESSING
+  REVIEW
+  ALIGNMENT
+  COMPLETED
+}

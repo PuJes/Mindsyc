@@ -10,6 +10,7 @@ import cardRoutes from './routes/cards';
 import workflowRoutes from './routes/workflows';
 import libraryRoutes from './routes/library';
 import configRoutes from './routes/config';
+import videoRoutes from './routes/videoRoutes';
 
 // 加载环境变量
 dotenv.config();
@@ -47,6 +48,7 @@ app.use('/api/cards', cardRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/library', libraryRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/video', videoRoutes);
 
 // 404处理
 app.use((req: Request, res: Response) => {
